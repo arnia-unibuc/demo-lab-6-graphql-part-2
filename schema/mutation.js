@@ -2,13 +2,13 @@ const {
   GraphQLObjectType,
   GraphQLNonNull,
   GraphQLString,
-  GraphQLInt,
   GraphQLError,
 } = require("graphql");
 const jwt = require("jsonwebtoken");
-const { books, users, getNextBookId } = require("../db");
+const { books, users, getNextBookId, findAuthor } = require("../db");
 const { JWT_SECRET, requireUser } = require("../middleware/auth");
 const BookType = require("./types/book");
+const CreateBookInput = require("./inputs/create-book-input");
 
 const MutationType = new GraphQLObjectType({
   name: "Mutations",
@@ -29,26 +29,33 @@ const MutationType = new GraphQLObjectType({
           throw new GraphQLError("Invalid username or password!");
         }
 
-        return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
-          expiresIn: "1h",
-        });
+        return jwt.sign(
+          { id: user.id, username: user.username, role: user.role },
+          JWT_SECRET,
+          {
+            expiresIn: "1h",
+          },
+        );
       },
     },
     createBook: {
       type: BookType,
-      args: {
-        title: { type: new GraphQLNonNull(GraphQLString) },
-        author: { type: new GraphQLNonNull(GraphQLString) },
-        year: { type: GraphQLInt },
-      },
+      args: { input: { type: new GraphQLNonNull(CreateBookInput) } },
       resolve: (parent, args, context) => {
         requireUser(context);
 
+        const { title, authorId, year, genre } = args.input;
+
+        if (!findAuthor(authorId)) {
+          throw new GraphQLError(`Author with id ${authorId} does not exist!`);
+        }
+
         const newBook = {
           id: getNextBookId(),
-          title: args.title,
-          author: args.author,
-          year: args.year,
+          title,
+          authorId: Number(authorId),
+          year,
+          genre,
         };
         books.push(newBook);
         return newBook;
