@@ -20,7 +20,7 @@ Endpoint: `http://localhost:3000/graphql` (send `POST` requests with Postman or 
 
 ```graphql
 query {
-  books { id title author year summary }
+  books { id title year genre author { name } }
 }
 ```
 
@@ -38,7 +38,7 @@ Authorization: Bearer <token>
 
 ```graphql
 mutation {
-  createBook(title: "Refactoring", author: "Martin Fowler", year: 1999) { id title }
+  createBook(input: { title: "The Clean Coder", authorId: 2, genre: PROGRAMMING }) { id title }
 }
 ```
 
